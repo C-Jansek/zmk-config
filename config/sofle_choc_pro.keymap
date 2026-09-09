@@ -16,9 +16,24 @@
 #define NAV 3
 #define SYS 4
 
+/*
+* Encoders (all layers):
+*   left  encoder rotate = volume down / up
+*   right encoder rotate = previous / next track
+*   encoder push         = the two keys at the bottom-center: left = mute, right = play
+*
+* Layer notes:
+*   SYM/NUM are one-shot (sticky) layers: tap the thumb key, the next keypress comes
+*   from the layer, then the layer exits by itself.
+*   NAV/SYS are persistent toggles: enter from a bottom pinky-column key on BASE,
+*   exit from either bottom pinky-column key.
+*   Unused inner keys are dead (&none); only the outer pinky columns and the thumb
+*   keys stay transparent (&trans) across layers.
+*   Shifted `,` `.` `;` produce nothing on BASE to force using the SYM layer.
+*/
+
 / {
   behaviors {
-    // Shifted `,` `.` `;` produce nothing: forces one-shot SYM layer usage.
     mm_comma: mm_comma {
       compatible = "zmk,behavior-mod-morph";
       label = "ZM_MM_COMMA";
@@ -62,88 +77,99 @@
       // ------------------------------------------------------------------------------------------------------------
       // | `   |  1  |  2  |  3  |  4  |  5   |                 |  6   |  7  |  8  |  9  |  0  | BKSP |
       // | TAB |  Q  |  W  |  E  |  R  |  T   |                 |  Y   |  U  |  I  |  O  |  P  | ESC  |
-      // | ESC | a=A s=GUI d=SFT f=CTL  G  |                 |  H   | j=CTL k=SFT l=GUI ;=ALT | ENT |
-      // | NAV |  Z  |  X  |  C  |  V  |  B   |     |     |      |  N   |  M  | ,   |  .  |  /  | SYS  |
+      // | ESC | a=ALT s=GUI d=SFT f=CTL  G |                 |  H   | j=CTL k=SFT l=GUI ;=ALT | ENT |
+      // | NAV |  Z  |  X  |  C  |  V  |  B   | MUTE | PLAY     |  N   |  M  |  ,  |  .  |  /  | SYS  |
       //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
         &kp GRAVE  &kp N1      &kp N2      &kp N3      &kp N4       &kp N5                       &kp N6       &kp N7       &kp N8       &kp N9      &kp N0       &kp BSPC
         &kp TAB    &kp Q        &kp W       &kp E       &kp R        &kp T                        &kp Y        &kp U        &kp I        &kp O       &kp P        &kp ESC
         &kp ESC    &mt LALT A   &mt LGUI S  &mt LSHFT D &mt LCTRL F  &kp G                        &kp H        &mt RCTRL J  &mt RSHFT K  &mt RGUI L  &ht_ralt_semi RALT 0  &kp RET
-        &to NAV    &kp Z        &kp X       &kp C       &kp V        &kp B   &none &none          &kp N        &kp M        &mm_comma    &mm_dot     &kp FSLH     &to SYS
+        &to NAV    &kp Z        &kp X       &kp C       &kp V        &kp B   &kp C_MUTE &kp C_PLAY   &kp N        &kp M        &mm_comma    &mm_dot     &kp FSLH     &to SYS
         &none      &none        &sl SYM     &kp SPC     &kp ESC                        &kp RET      &kp BSPC     &sl NUM      &none        &none
       >;
 
+      // left encoder: volume down/up, right encoder: prev/next track
       sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP &inc_dec_kp C_PREV C_NEXT>;
     };
 
     sym_layer {
       display-name = "sym";
-      // One-shot layer: tap thumb, next keypress is a symbol, auto-exits.
+      // ------------------------------------------------------------------------------------------------------------
       // |     |     |     |     |     |      |                 |      |     |     |     |     |      |
       // |     |  !  |  @  |  #  |  $  |  %   |                 |  =   |  <  |  :  |  >  |  +  |      |
-      // |     | aTAB aGRV a'  a"  ^     |                 |  *   |  (  |  {  |  [  |  -  |      |
-      // |     |     |     |  \  |  |  |  &   |     |     |      |  ~   |  )  |  }  |  ]  |  _  |      |
+      // |     |aTAB |aGRV | a'  | a"  |  ^   |                 |  *   |  (  |  {  |  [  |  -  |      |
+      // |     |     |     |  \  |  |  |  &   | MUTE | PLAY     |  ~   |  )  |  }  |  ]  |  _  |      |
+      //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
         &none       &none          &none          &none           &none           &none                          &none         &none          &none        &none        &none         &none
         &trans      &kp EXCL       &kp AT         &kp HASH        &kp DLLR        &kp PRCNT                      &kp EQUAL     &kp LT         &kp COLON    &kp GT       &kp PLUS      &trans
-        &trans      &mt LALT TAB   &mt LGUI GRAVE &mt LSHFT SQT   &mt LCTRL DQT  &kp CARET                      &kp ASTRK     &kp LPAR       &kp LBRC     &kp LBKT     &kp MINUS     &trans
-        &to BASE    &none          &none          &kp BSLH        &kp PIPE        &kp AMPS   &none &none         &kp TILDE     &kp RPRN       &kp RBRC     &kp RBKT     &kp UNDERSCORE  &to BASE
+        &trans      &mt LALT TAB   &mt LGUI GRAVE &mt LSHFT SQT   &mt LCTRL DQT   &kp CARET                      &kp ASTRK     &kp LPAR       &kp LBRC     &kp LBKT     &kp MINUS     &trans
+        &to BASE    &none          &none          &kp BSLH        &kp PIPE        &kp AMPS   &kp C_MUTE &kp C_PLAY   &kp TILDE     &kp RPRN       &kp RBRC     &kp RBKT     &kp UNDERSCORE  &to BASE
         &trans      &trans         &trans         &kp SPC         &kp ESC                           &kp RET       &kp BSPC       &trans        &trans       &trans
       >;
 
+      // left encoder: volume down/up, right encoder: prev/next track
       sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP &inc_dec_kp C_PREV C_NEXT>;
     };
 
     num_layer {
       display-name = "num";
-      // One-shot layer: F-keys left (4 per row), numpad right.
+      // ------------------------------------------------------------------------------------------------------------
       // |     |     |     |     |     |      |                 |      |  /  |  *  |     |     |  -   |
       // |     | F1  | F2  | F3  | F4  |      |                 |  =   |  7  |  8  |  9  |  +  |      |
       // |     | F5  | F6  | F7  | F8  |      |                 |  .   |  4  |  5  |  6  |  -  |      |
-      // |     | F9  | F10 | F11 | F12 |      |     |     |      |  0   |  1  |  2  |  3  | ENT |      |
+      // |     | F9  | F10 | F11 | F12 |      | MUTE | PLAY     |  0   |  1  |  2  |  3  | ENT |      |
+      //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
-        &none       &none          &none          &none           &none           &none                          &none         &kp SLASH      &kp ASTRK    &none        &none         &kp MINUS
+        &trans      &none          &none          &none           &none           &none                          &none         &kp SLASH      &kp ASTRK    &none        &none         &kp MINUS
         &trans      &kp F1         &kp F2         &kp F3          &kp F4          &none                          &kp EQUAL     &kp N7         &kp N8       &kp N9       &kp PLUS      &trans
         &trans      &kp F5         &kp F6         &kp F7          &kp F8          &none                          &kp DOT       &kp N4         &kp N5       &kp N6       &kp MINUS     &trans
-        &to BASE    &kp F9         &kp F10        &kp F11         &kp F12         &none     &none &none          &kp N0        &kp N1         &kp N2       &kp N3       &kp RET       &to BASE
+        &to BASE    &kp F9         &kp F10        &kp F11         &kp F12         &none     &kp C_MUTE &kp C_PLAY   &kp N0        &kp N1         &kp N2       &kp N3       &kp RET       &to BASE
         &trans      &trans         &trans         &kp SPC         &kp ESC                           &kp RET       &kp BSPC       &trans        &trans       &trans
       >;
 
+      // left encoder: volume down/up, right encoder: prev/next track
       sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP &inc_dec_kp C_PREV C_NEXT>;
     };
 
     nav_layer {
       display-name = "nav";
-      // Persistent toggle: enter from bottom-left pinky key, exit via either bottom pinky key.
-      // |     |     |     |     |     |      |                 | HOME | PGDN| PGUP| END |     |      |
-      // |     | C+S+TAB | C+TAB |  |  |      |                 | LEFT | DOWN| UP  | RGHT|     |      |
-      // |     | C+BSPC | DEL | C+DEL |  |   |                 |      |     |     |     |     |      |
+      // Letters are dead on NAV (inner keys &none); outer columns and thumbs stay live.
+      // ------------------------------------------------------------------------------------------------------------
+      // |     |     |     |     |     |      |                 |      |     |     |     |     |      |
+      // |     |C+S+TAB | C+TAB |     |     | | HOME | PGDN | PGUP | END  |     |      |
+      // |     |C+BSPC |  DEL  |C+DEL |    |       | LEFT | DOWN |  UP  | RGHT |     |      |
+      // |     |     |     |     |     |      | MUTE | PLAY     |      |     |     |     |     |      |
+      //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
-        &trans      &trans          &trans         &trans          &trans          &trans                         &trans        &trans         &trans       &trans       &trans        &trans
+        &trans      &none          &none          &none           &none           &none                          &none         &none          &none        &none        &none         &trans
         &trans      &kp LC(LS(TAB)) &kp LC(TAB)    &none           &none           &none                          &kp HOME      &kp PG_DN      &kp PG_UP    &kp END      &none         &trans
         &trans      &kp LC(BSPC)    &kp DEL        &kp LC(DEL)     &none           &none                          &kp LEFT      &kp DOWN       &kp UP       &kp RIGHT    &none         &trans
-        &to BASE    &trans          &trans         &trans          &trans          &trans    &none &none          &trans        &trans         &trans       &trans       &trans        &to BASE
+        &to BASE    &none          &none          &none           &none           &none     &kp C_MUTE &kp C_PLAY   &none         &none          &none        &none        &none         &to BASE
         &trans      &trans          &trans         &trans          &trans                            &trans        &trans         &trans        &trans       &trans
       >;
 
+      // left encoder: volume down/up, right encoder: prev/next track
       sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP &inc_dec_kp C_PREV C_NEXT>;
     };
 
     sys_layer {
       display-name = "sys";
-      // Persistent toggle: enter from bottom-right pinky key, exit via either bottom pinky key.
-      // | BTCLR| BT0 | BT1 | BT2 | BT3 | BT4  |                 |      |     |     |     |     | RGB  |
+      // ------------------------------------------------------------------------------------------------------------
+      // |BTCLR | BT0 | BT1 | BT2 | BT3 | BT4  |                 |      |     |     |     |     | RGB  |
       // | EPWR | HUD | HUI | SAD | SAI | EFF  |                 | BRI- | BRI+|     |     |     |      |
       // |      | BRD | BRI |     |     |      |                 | PREV | PLAY| NEXT| MUTE| VOL-| VOL+ |
-      // |      |     |     |     |     |      |     |     |      |      |     |     |     |     |      |
+      // |      |     |     |     |     |      | MUTE | PLAY     |      |     |     |     |     |      |
+      //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
         &bt BT_CLR        &bt BT_SEL 0    &bt BT_SEL 1    &bt BT_SEL 2    &bt BT_SEL 3    &bt BT_SEL 4                   &none         &none          &none        &none        &none         &rgb_ug RGB_TOG
         &ext_power EP_TOG &rgb_ug RGB_HUD &rgb_ug RGB_HUI &rgb_ug RGB_SAD &rgb_ug RGB_SAI &rgb_ug RGB_EFF                &kp C_BRIGHTNESS_DEC &kp C_BRIGHTNESS_INC &none &none &none  &trans
         &none             &rgb_ug RGB_BRD &rgb_ug RGB_BRI &none           &none           &none                          &kp C_PREV    &kp C_PLAY     &kp C_NEXT   &kp C_MUTE   &kp C_VOL_DN  &kp C_VOL_UP
-        &to BASE          &none           &none           &none           &none           &none     &none &none          &none         &none          &none        &none        &none         &to BASE
+        &to BASE          &none           &none           &none           &none           &none     &kp C_MUTE &kp C_PLAY   &none         &none          &none        &none        &none         &to BASE
         &trans            &trans          &trans          &trans          &trans                            &trans        &trans         &trans        &trans       &trans
       >;
 
+      // left encoder: volume down/up, right encoder: prev/next track
       sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP &inc_dec_kp C_PREV C_NEXT>;
     };
   };
