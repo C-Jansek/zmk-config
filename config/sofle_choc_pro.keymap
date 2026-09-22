@@ -159,13 +159,13 @@
       // |BTCLR | BT0 | BT1 | BT2 | BT3 | BT4  |                 |      |     |     |     |     | RGB  |
       // | EPWR | HUD | HUI | SAD | SAI | EFF  |                 | BRI- | BRI+|     |     |     |      |
       // |      | BRD | BRI |     |     |      |                 | PREV | PLAY| NEXT| MUTE| VOL-| VOL+ |
-      // |      |     |     |     |     |      | MUTE | PLAY     |      |     |     |     |     |      |
+      // |      |     |     |     | RST | BOOT | MUTE | PLAY     | BOOT | RST |     |     |     |      |
       //              |     | SPC | ESC |                                     | ENT | BSPC |    |
       bindings = <
         &bt BT_CLR        &bt BT_SEL 0    &bt BT_SEL 1    &bt BT_SEL 2    &bt BT_SEL 3    &bt BT_SEL 4                   &none         &none          &none        &none        &none         &rgb_ug RGB_TOG
         &ext_power EP_TOG &rgb_ug RGB_HUD &rgb_ug RGB_HUI &rgb_ug RGB_SAD &rgb_ug RGB_SAI &rgb_ug RGB_EFF                &kp C_BRIGHTNESS_DEC &kp C_BRIGHTNESS_INC &none &none &none  &trans
         &none             &rgb_ug RGB_BRD &rgb_ug RGB_BRI &none           &none           &none                          &kp C_PREV    &kp C_PLAY     &kp C_NEXT   &kp C_MUTE   &kp C_VOL_DN  &kp C_VOL_UP
-        &to BASE          &none           &none           &none           &none           &none     &kp C_MUTE &kp C_PLAY   &none         &none          &none        &none        &none         &to BASE
+        &to BASE          &none           &none           &none           &sys_reset      &bootloader  &kp C_MUTE &kp C_PLAY   &bootloader   &sys_reset     &none        &none        &none         &to BASE
         &trans            &trans          &trans          &trans          &trans                            &trans        &trans         &trans        &trans       &trans
       >;
 
