@@ -58,13 +58,41 @@
       bindings = <&kp SEMI>, <&none>;
     };
 
+    // Home-row mods: flavor "balanced" matches kanata tap-hold-release — the hold
+    // only fires when another key is pressed AND released while this key is held,
+    // or on timeout; quick-tap gives repeat on a fast re-press of the same key.
+    hml: home_row_mod_left {
+      compatible = "zmk,behavior-hold-tap";
+      label = "HML";
+      #binding-cells = <2>;
+      flavor = "balanced";
+      tapping-term-ms = <200>;
+      quick-tap-ms = <200>;
+      require-prior-idle-ms = <75>;
+      bindings = <&kp>, <&kp>;
+    };
+
+    hmr: home_row_mod_right {
+      compatible = "zmk,behavior-hold-tap";
+      label = "HMR";
+      #binding-cells = <2>;
+      flavor = "balanced";
+      tapping-term-ms = <200>;
+      quick-tap-ms = <200>;
+      require-prior-idle-ms = <75>;
+      bindings = <&kp>, <&kp>;
+    };
+
     // Right-alt hold, semi tap, with shifted-tap killed via mod-morph.
+    // Same timing options as hml/hmr above.
     ht_ralt_semi: ht_ralt_semi {
       compatible = "zmk,behavior-hold-tap";
       label = "HT_RALT_SEMI";
       #binding-cells = <2>;
       flavor = "balanced";
       tapping-term-ms = <200>;
+      quick-tap-ms = <200>;
+      require-prior-idle-ms = <75>;
       bindings = <&kp>, <&mm_semi>;
     };
   };
@@ -83,7 +111,7 @@
       bindings = <
         &kp GRAVE  &kp N1      &kp N2      &kp N3      &kp N4       &kp N5                       &kp N6       &kp N7       &kp N8       &kp N9      &kp N0       &kp BSPC
         &kp TAB    &kp Q        &kp W       &kp E       &kp R        &kp T                        &kp Y        &kp U        &kp I        &kp O       &kp P        &kp ESC
-        &kp ESC    &mt LALT A   &mt LGUI S  &mt LSHFT D &mt LCTRL F  &kp G                        &kp H        &mt RCTRL J  &mt RSHFT K  &mt RGUI L  &ht_ralt_semi RALT 0  &kp RET
+        &kp ESC    &hml LALT A  &hml LGUI S  &hml LSHFT D &hml LCTRL F  &kp G                        &kp H        &hmr RCTRL J &hmr RSHFT K &hmr RGUI L  &ht_ralt_semi RALT 0  &kp RET
         &to NAV    &kp Z        &kp X       &kp C       &kp V        &kp B   &kp C_MUTE &kp C_PLAY   &kp N        &kp M        &mm_comma    &mm_dot     &kp FSLH     &to SYS
         &none      &none        &sl SYM     &kp SPC     &kp ESC                        &kp RET      &kp BSPC     &sl NUM      &none        &none
       >;
@@ -103,7 +131,7 @@
       bindings = <
         &none       &none          &none          &none           &none           &none                          &none         &none          &none        &none        &none         &none
         &trans      &kp EXCL       &kp AT         &kp HASH        &kp DLLR        &kp PRCNT                      &kp EQUAL     &kp LT         &kp COLON    &kp GT       &kp PLUS      &trans
-        &trans      &mt LALT TAB   &mt LGUI GRAVE &mt LSHFT SQT   &mt LCTRL DQT   &kp CARET                      &kp ASTRK     &kp LPAR       &kp LBRC     &kp LBKT     &kp MINUS     &trans
+        &trans      &hml LALT TAB   &hml LGUI GRAVE &hml LSHFT SQT   &hml LCTRL DQT   &kp CARET                      &kp ASTRK     &kp LPAR       &kp LBRC     &kp LBKT     &kp MINUS     &trans
         &to BASE    &none          &none          &kp BSLH        &kp PIPE        &kp AMPS   &kp C_MUTE &kp C_PLAY   &kp TILDE     &kp RPRN       &kp RBRC     &kp RBKT     &kp UNDERSCORE  &to BASE
         &trans      &trans         &trans         &kp SPC         &kp ESC                           &kp RET       &kp BSPC       &trans        &trans       &trans
       >;

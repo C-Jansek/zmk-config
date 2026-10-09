@@ -195,8 +195,9 @@ _flash_half() {
   pause "Press Enter right after triggering the reset..."
   if mount=$(_wait_for_boot_drive "$before"); then
     ok "bootloader drive mounted: $mount"
-    step "Copying firmware ($uf2) ..."
-    cp "$uf2" "$mount/" && sync
+    note "firmware: $uf2 ($(ls -l "$uf2" | awk '{print $5}') bytes)"
+    step "Copying firmware to $mount ..."
+    cp -v "$uf2" "$mount/" && sync
     ok "copied. The drive should eject itself and the keyboard reboots."
     pause "Press Enter once the drive has disappeared..."
     warn "If the drive is still there, eject it manually and re-plug the half."
@@ -204,7 +205,8 @@ _flash_half() {
     warn "No bootloader drive appeared within 2 minutes."
     ask mount "Type the mount path manually (e.g. /Volumes/XIAO-BOOT), or Enter to skip:"
     if [[ -n "$mount" && -d "$mount" ]]; then
-      cp "$uf2" "$mount/" && sync
+      note "firmware: $uf2 ($(ls -l "$uf2" | awk '{print $5}') bytes)"
+      cp -v "$uf2" "$mount/" && sync
       ok "copied to $mount"
     else
       SKIPPED+=("flashing the $name half — do it by hand: drag $uf2 onto the bootloader drive")
@@ -215,6 +217,48 @@ _flash_half() {
 
 # ── Stage 1: build ────────────────────────────────────────────────────────
 stage "Build firmware"
+
+BUILD_LOG_DIR="$REPO_ROOT/build"
+
+# _build_side SIDE — build one half in Docker, streaming the full output and
+# keeping a copy in build/<side>.log. Fails the wizard on error.
+_build_side() {
+  local side="$1" log="$BUILD_LOG_DIR/${1}.log"
+  local board="sofle_choc_pro_${side}"
+  local studio_arg=""
+  [[ "$side" == "left" ]] && studio_arg="-DCONFIG_ZMK_STUDIO=y"
+  mkdir -p "$BUILD_LOG_DIR"
+
+  note "running:"
+  note "  docker run --rm -v $REPO_ROOT:/workspaces/zmk-config -w /workspaces/zmk-config $IMAGE bash -c '"
+  note "    test -d .west || west init -l config"
+  note "    test -d zephyr || west update"
+  note "    west zephyr-export"
+  note "    west build -p -d build/$side -s zmk/app -b $board --"
+  note "      -DZMK_CONFIG=/workspaces/zmk-config/config -DSHIELD=sharp_mip"
+  note "      -DSNIPPET=studio-rpc-usb-uart $studio_arg'"
+  note "full log: $log"
+  say ""
+
+  if docker run --rm -v "$REPO_ROOT":/workspaces/zmk-config -w /workspaces/zmk-config \
+      "$IMAGE" \
+      bash -c "test -d .west || west init -l config >/dev/null
+               test -d zephyr || west update
+               west zephyr-export >/dev/null
+               west build -p -d build/$side -s zmk/app -b $board \
+                 -- -DZMK_CONFIG=/workspaces/zmk-config/config -DSHIELD=sharp_mip \
+                    -DSNIPPET=studio-rpc-usb-uart $studio_arg" \
+      2>&1 | tee "$log"; then
+    [[ -f "$BUILD_LOG_DIR/$side/zephyr/zmk.uf2" ]] \
+      && ok "built $side half: $BUILD_LOG_DIR/$side/zephyr/zmk.uf2 ($(ls -l "$BUILD_LOG_DIR/$side/zephyr/zmk.uf2" | awk '{print $5}') bytes)" \
+      || { warn "build finished but no .uf2 produced — see $log"; exit 1; }
+  else
+    warn "build of $side half failed — last 40 log lines:"
+    tail -40 "$log"
+    exit 1
+  fi
+}
+
 REBUILD=0
 if [[ -f "$LEFT_UF2" && -f "$RIGHT_UF2" ]]; then
   note "existing firmware:"
@@ -231,13 +275,9 @@ if [[ "$REBUILD" -eq 1 || ! -f "$LEFT_UF2" || ! -f "$RIGHT_UF2" ]]; then
     exit 1
   fi
   for side in left right; do
-    say "Building sofle_choc_pro_${side} (this takes a few minutes)..."
-    docker run --rm -v "$REPO_ROOT":/workspaces/zmk-config -w /workspaces/zmk-config \
-      "$IMAGE" \
-      west build -s zmk/app -b "sofle_choc_pro_${side}" -d "build/${side}" \
-        -- -DZMK_CONFIG=/workspaces/zmk-config/config
+    say "Building sofle_choc_pro_${side} (first build downloads ~2 GB of modules; later builds are incremental)..."
+    _build_side "$side"
   done
-  [[ -f "$LEFT_UF2" && -f "$RIGHT_UF2" ]] || { warn "build failed — no .uf2 produced"; exit 1; }
   ok "firmware ready"
 else
   ok "reusing existing firmware"
@@ -253,6 +293,6 @@ _flash_half "right" "$RIGHT_UF2"
 
 # Closing notes
 SKIPPED+=("Bluetooth pairing — reconnect via USB or pair 'Sofle Choc Pro' in Bluetooth settings")
-SKIPPED+=("If BT acts up after flashing: build & flash the settings_reset firmware on BOTH halves (docker run --rm -v \"\$PWD\":/workspaces/zmk-config -w /workspaces/zmk-config zmkfirmware/zmk-build-arm:stable west build -s zmk/app -b sofle_choc_pro_left -- -DSHIELD=settings_reset -DZMK_CONFIG=/workspaces/zmk-config/config), reflash normal firmware, then re-pair")
+SKIPPED+=("If BT acts up after flashing: build & flash the settings_reset firmware on BOTH halves (per side: docker run --rm -v \"\$PWD\":/workspaces/zmk-config -w /workspaces/zmk-config zmkfirmware/zmk-build-arm:stable bash -c 'west zephyr-export >/dev/null && west build -p -d build/settings_reset -s zmk/app -b sofle_choc_pro_<side> -- -DSHIELD=settings_reset -DZMK_CONFIG=/workspaces/zmk-config/config -DSNIPPET=studio-rpc-usb-uart'), reflash normal firmware, then re-pair")
 
 finish
